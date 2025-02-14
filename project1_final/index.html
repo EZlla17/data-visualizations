@@ -1,0 +1,825 @@
+<html>
+
+<head>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        #graphTitle {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #333333;
+            /* Dark grey for readability */
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .graphSubtitle {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #555555;
+            /* Lighter grey for distinction from main title */
+            margin-top: 10px;
+            margin-bottom: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .cell {
+            stroke: #ffffff;
+        }
+
+        .axis text {
+            font-size: 12px;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 {
+            padding-top: 30px;
+            padding-bottom: 30px;
+            width: 95%;
+            background-color: #ffd8ea;
+        }
+
+        #radarSvg {
+            padding-top: 50px;
+        }
+
+        #heatmap {
+            padding-top: 80px;
+        }
+
+        #mbti-histogram {
+            padding-top: 80px;
+        }
+
+        .summary {
+            width: 90%;
+            background-color: rgb(218, 238, 255);
+            padding-top: 30px;
+            padding-bottom: 30px;
+            padding-left: 50px;
+            padding-right: 50px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1 id="graphTitle">Exploring the Influential Factors Behind
+        <span style="color: #aa43ff; display: inline-block; margin-right: -5px;">M</span>
+        <span style="color: #aa43ff; display: inline-block; margin-right: -5px;">B</span>
+        <span style="color: #aa43ff; display: inline-block; margin-right: -5px;">T</span>
+        <span style="color: #aa43ff; display: inline-block;">I</span>
+        Personality Types
+    </h1>
+
+    <svg id="radarSvg" width="1200" height="400"></svg>
+    <script>
+        const svg = d3.select("#radarSvg");
+        const width = svg.attr("width");
+        const height = svg.attr("height");
+        const margins = { top: 10, right: 10, bottom: 50, left: 50 };
+        const chartWidth = width - margins.left - margins.right;
+        const chartHeight = height - margins.top - margins.bottom;
+
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", 20)
+            .text("Personality Analysis Across Different Interests")
+            .attr("text-anchor", "middle")
+            .style("font-size", 20)
+            .style("font-weight", "bold");
+
+        let chartAreaArts = svg.append("g")
+            .attr("transform", `translate(${width / 8},${height / 2})`);
+
+        let chartAreaSport = svg.append("g")
+            .attr("transform", `translate(${3 * width / 8},${height / 2})`);
+
+        let chartAreaTech = svg.append("g")
+            .attr("transform", `translate(${5 * width / 8},${height / 2})`);
+
+        let chartAreaTotal = svg.append("g")
+            .attr("transform", `translate(${7 * width / 8},${height / 2})`);
+
+
+
+
+        d3.csv("personalities.csv").then((data) => {
+
+            //Filter out data with unknown interest.
+            const interests = ["Arts", "Sports", "Technology"];
+            const filtData = data.filter(d => interests.includes(d["Interest"]));
+            console.log(filtData);
+
+            //Number of each personality for each interest
+            let artsE = 0, artsI = 0, artsN = 0, artsS = 0, artsF = 0, artsT = 0, artsP = 0, artsJ = 0;
+            let sportE = 0, sportI = 0, sportN = 0, sportS = 0, sportF = 0, sportT = 0, sportP = 0, sportJ = 0;
+            let techE = 0, techI = 0, techN = 0, techS = 0, techF = 0, techT = 0, techP = 0, techJ = 0;
+            let otherE = 0, otherI = 0, otherN = 0, otherS = 0, otherF = 0, otherT = 0, otherP = 0, otherJ = 0;
+            let countArts = 0, countSport = 0, countTech = 0, countOthers = 0;
+            const numberOfLevels = 5; // Number of grid levels
+            const radiusScale = d3.scaleLinear().domain([0, numberOfLevels]).range([0, 100]); // Scale for grid radius
+            const angleSlice = Math.PI * 2 / 8; // Number of axes (8 for E, I, N, S, F, T, P, J)
+
+            data.forEach(d => {
+                if (d["Interest"] === "Arts") {
+                    countArts++;
+                    if (d["Personality"][0] === "E") artsE++;
+                    if (d["Personality"][0] === "I") artsI++;
+
+                    if (d["Personality"][1] === "N") artsN++;
+                    if (d["Personality"][1] === "S") artsS++;
+
+                    if (d["Personality"][2] === "F") artsF++;
+                    if (d["Personality"][2] === "T") artsT++;
+
+                    if (d["Personality"][3] === "P") artsP++;
+                    if (d["Personality"][3] === "J") artsJ++;
+                }
+
+                if (d["Interest"] === "Sports") {
+                    countSport++;
+                    if (d["Personality"][0] === "E") sportE++;
+                    if (d["Personality"][0] === "I") sportI++;
+
+                    if (d["Personality"][1] === "N") sportN++;
+                    if (d["Personality"][1] === "S") sportS++;
+
+                    if (d["Personality"][2] === "F") sportF++;
+                    if (d["Personality"][2] === "T") sportT++;
+
+                    if (d["Personality"][3] === "P") sportP++;
+                    if (d["Personality"][3] === "J") sportJ++;
+                }
+
+                if (d["Interest"] === "Technology") {
+                    countTech++;
+                    if (d["Personality"][0] === "E") techE++;
+                    if (d["Personality"][0] === "I") techI++;
+
+                    if (d["Personality"][1] === "N") techN++;
+                    if (d["Personality"][1] === "S") techS++;
+
+                    if (d["Personality"][2] === "F") techF++;
+                    if (d["Personality"][2] === "T") techT++;
+
+                    if (d["Personality"][3] === "P") techP++;
+                    if (d["Personality"][3] === "J") techJ++;
+                }
+
+                if (d["Interest"] === "Others") {
+                    countOthers++;
+                    if (d["Personality"][0] === "E") otherE++;
+                    if (d["Personality"][0] === "I") otherI++;
+
+                    if (d["Personality"][1] === "N") otherN++;
+                    if (d["Personality"][1] === "S") otherS++;
+
+                    if (d["Personality"][2] === "F") otherF++;
+                    if (d["Personality"][2] === "T") otherT++;
+
+                    if (d["Personality"][3] === "P") otherP++;
+                    if (d["Personality"][3] === "J") otherJ++;
+                }
+            });
+
+
+
+            // Add concentric grid lines for Arts chart
+            for (let level = 0; level <= numberOfLevels; level++) {
+                chartAreaArts.append("circle")
+                    .attr("cx", 0)
+                    .attr("cy", 0)
+                    .attr("r", radiusScale(level))
+                    .attr("stroke", level === numberOfLevels ? "black" : "lightgrey")  // Black stroke for outer circle
+                    .attr("stroke-width", level === numberOfLevels ? 1.5 : 1)  // Bold outer circle
+                    .attr("fill", "none")
+                    .attr("stroke-dasharray", level === numberOfLevels ? "0" : "1,1");  // No dashes for outer circle
+            }
+
+
+            // Add axes lines
+            for (let i = 0; i < 8; i++) {
+                chartAreaArts.append("line")
+                    .attr("x1", 0)
+                    .attr("y1", 0)
+                    .attr("x2", radiusScale(numberOfLevels) * Math.cos(angleSlice * i - Math.PI / 2))
+                    .attr("y2", radiusScale(numberOfLevels) * Math.sin(angleSlice * i - Math.PI / 2))
+                    .attr("stroke", "lightgrey")
+                    .attr("stroke-dasharray", "1,1");;
+            }
+
+
+
+
+            //create scales for Arts
+            const scaleStraightArts = d3.scaleLinear().domain([0, countArts])
+                .range([0, 100]);
+
+            const scaleTiltArts = d3.scaleLinear().domain([0, countArts * Math.cos(45 * (Math.PI / 180))])
+                .range([0, 100 * Math.cos(45 * (Math.PI / 180.0))]);
+
+            //create path for Arts
+            let artsPath = `M 0 ${-scaleStraightArts(artsE)} L -${scaleTiltArts(artsN / Math.sqrt(2))} ${-scaleTiltArts(artsN / Math.sqrt(2))} L ${-scaleStraightArts(artsP)} 0  
+                            L ${-scaleTiltArts(artsF / Math.sqrt(2))} ${scaleTiltArts(artsF / Math.sqrt(2))} L 0 ${scaleStraightArts(artsI)} L ${scaleTiltArts(artsS / Math.sqrt(2))} ${scaleTiltArts(artsS / Math.sqrt(2))}
+                            L ${scaleStraightArts(artsJ)} 0 L ${scaleTiltArts(artsT / Math.sqrt(2))} ${-scaleTiltArts(artsT / Math.sqrt(2))} Z`
+
+            //append path to chartAreaArts
+            chartAreaArts.append("path")
+                .attr("d", artsPath)
+                .attr("stroke", "#C71585")
+                .attr("stroke-width", 1)
+                .attr("fill", "pink")
+                .attr("fill-opacity", 0.4);
+
+
+            // Add concentric grid lines
+            for (let level = 0; level <= numberOfLevels; level++) {
+                chartAreaSport.append("circle")
+                    .attr("cx", 0)
+                    .attr("cy", 0)
+                    .attr("r", radiusScale(level))
+                    .attr("stroke", level === numberOfLevels ? "black" : "lightgrey")  // Black stroke for outer circle
+                    .attr("stroke-width", level === numberOfLevels ? 1.5 : 1)  // Bold outer circle
+                    .attr("fill", "none")
+                    .attr("stroke-dasharray", level === numberOfLevels ? "0" : "1,1");  // No dashes for outer circle
+            }
+
+
+            // Add axes lines
+            for (let i = 0; i < 8; i++) {
+                chartAreaSport.append("line")
+                    .attr("x1", 0)
+                    .attr("y1", 0)
+                    .attr("x2", radiusScale(numberOfLevels) * Math.cos(angleSlice * i - Math.PI / 2))
+                    .attr("y2", radiusScale(numberOfLevels) * Math.sin(angleSlice * i - Math.PI / 2))
+                    .attr("stroke", "lightgrey")
+                    .attr("stroke-dasharray", "1,1");
+            }
+
+            //create scales for Sport
+            const scaleStraightSport = d3.scaleLinear().domain([0, countSport])
+                .range([0, 100]);
+
+            const scaleTiltSport = d3.scaleLinear().domain([0, countSport * Math.cos(45 * (Math.PI / 180))])
+                .range([0, 100 * Math.cos(45 * (Math.PI / 180.0))]);
+
+
+            //create path for sport
+            let sportPath = `M 0 ${-scaleStraightSport(sportE)} L -${scaleTiltSport(sportN / Math.sqrt(2))} ${-scaleTiltSport(sportN / Math.sqrt(2))} L ${-scaleStraightSport(sportP)} 0  
+                            L ${-scaleTiltSport(sportF / Math.sqrt(2))} ${scaleTiltSport(sportF / Math.sqrt(2))} L 0 ${scaleStraightSport(sportI)} L ${scaleTiltSport(sportS / Math.sqrt(2))} ${scaleTiltSport(sportS / Math.sqrt(2))}
+                            L ${scaleStraightSport(sportJ)} 0 L ${scaleTiltSport(sportT / Math.sqrt(2))} ${-scaleTiltSport(sportT / Math.sqrt(2))} Z`
+
+
+            //append path to chartAreaSport
+            chartAreaSport.append("path")
+                .attr("d", sportPath)
+                .attr("stroke", "orange")
+                .attr("stroke-width", 1)
+                .attr("fill", "orange")
+                .attr("fill-opacity", 0.3);
+
+
+            // Add concentric grid lines
+
+            for (let level = 0; level <= numberOfLevels; level++) {
+                chartAreaTech.append("circle")
+                    .attr("cx", 0)
+                    .attr("cy", 0)
+                    .attr("r", radiusScale(level))
+                    .attr("stroke", level === numberOfLevels ? "black" : "lightgrey")  // Black stroke for outer circle
+                    .attr("stroke-width", level === numberOfLevels ? 1.5 : 1)  // Bold outer circle
+                    .attr("fill", "none")
+                    .attr("stroke-dasharray", level === numberOfLevels ? "0" : "1,1");  // No dashes for outer circle
+            }
+
+
+            // Add axes lines
+            for (let i = 0; i < 8; i++) {
+                chartAreaTech.append("line")
+                    .attr("x1", 0)
+                    .attr("y1", 0)
+                    .attr("x2", radiusScale(numberOfLevels) * Math.cos(angleSlice * i - Math.PI / 2))
+                    .attr("y2", radiusScale(numberOfLevels) * Math.sin(angleSlice * i - Math.PI / 2))
+                    .attr("stroke", "lightgrey")
+                    .attr("stroke-dasharray", "1,1");;
+            }
+
+
+
+            //create scales for Tech
+            const scaleStraightTech = d3.scaleLinear().domain([0, countTech])
+                .range([0, 100]);
+
+            const scaleTiltTech = d3.scaleLinear().domain([0, countTech * Math.cos(45 * (Math.PI / 180))])
+                .range([0, 100 * Math.cos(45 * (Math.PI / 180.0))]);
+
+
+            let techPath = `M 0 ${-scaleStraightTech(techE)} L -${scaleTiltTech(techN / Math.sqrt(2))} ${-scaleTiltTech(techN / Math.sqrt(2))} L ${-scaleStraightTech(techP)} 0  
+                            L ${-scaleTiltTech(techF / Math.sqrt(2))} ${scaleTiltTech(techF / Math.sqrt(2))} L 0 ${scaleStraightTech(techI)} L ${scaleTiltTech(techS / Math.sqrt(2))} ${scaleTiltTech(techS / Math.sqrt(2))}
+                            L ${scaleStraightTech(techJ)} 0 L ${scaleTiltTech(techT / Math.sqrt(2))} ${-scaleTiltTech(techT / Math.sqrt(2))} Z`
+
+            //append path to chartAreaTech
+            chartAreaTech.append("path")
+                .attr("d", techPath)
+                .attr("stroke", "blue")
+                .attr("stroke-opacity", 0.5)
+                .attr("stroke-width", 1)
+                .attr("fill", "lightblue")
+                .attr("fill-opacity", 0.5);
+
+
+            // Add concentric grid lines
+            for (let level = 0; level <= numberOfLevels; level++) {
+                chartAreaTotal.append("circle")
+                    .attr("cx", 0)
+                    .attr("cy", 0)
+                    .attr("r", radiusScale(level))
+                    .attr("stroke", level === numberOfLevels ? "black" : "lightgrey")  // Black stroke for outer circle
+                    .attr("stroke-width", level === numberOfLevels ? 1.5 : 1)  // Bold outer circle
+                    .attr("fill", "none")
+                    .attr("stroke-dasharray", level === numberOfLevels ? "0" : "1,1");  // No dashes for outer circle
+            }
+
+
+            // Add axes lines
+            for (let i = 0; i < 8; i++) {
+                chartAreaTotal.append("line")
+                    .attr("x1", 0)
+                    .attr("y1", 0)
+                    .attr("x2", radiusScale(numberOfLevels) * Math.cos(angleSlice * i - Math.PI / 2))
+                    .attr("y2", radiusScale(numberOfLevels) * Math.sin(angleSlice * i - Math.PI / 2))
+                    .attr("stroke", "lightgrey")
+                    .attr("stroke-dasharray", "1,1");
+            }
+
+            // Add notation labels for each corner of the radar chart
+            const axisLabels = ["E", "T", "J", "S", "I", "F", "P", "N"];
+            for (let i = 0; i < 8; i++) {
+                const xCoord = radiusScale(numberOfLevels) * Math.cos(angleSlice * i - Math.PI / 2);
+                const yCoord = radiusScale(numberOfLevels) * Math.sin(angleSlice * i - Math.PI / 2);
+
+                chartAreaArts.append("text")
+                    .attr("x", xCoord * 1.1)  // Multiply by 1.1 to move text slightly beyond the axis end
+                    .attr("y", yCoord * 1.1)
+                    .attr("dy", "0.35em")  // To align the text vertically
+                    .style("text-anchor", "middle")
+                    .style("font-size", "12px")
+                    .style("font-weight", "bold")
+                    .text(axisLabels[i]);
+
+                chartAreaArts.append("text")
+                    .attr("x", width / 64 - 18)
+                    .attr("y", height / 3)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "16px")
+                    .style("font-weight", "bold")
+                    .text("Arts");
+
+                chartAreaSport.append("text")
+                    .attr("x", xCoord * 1.1)  // Multiply by 1.1 to move text slightly beyond the axis end
+                    .attr("y", yCoord * 1.1)
+                    .attr("dy", "0.35em")  // To align the text vertically
+                    .style("text-anchor", "middle")
+                    .style("font-size", "12px")
+                    .style("font-weight", "bold")
+                    .text(axisLabels[i]);
+
+                chartAreaSport.append("text")
+                    .attr("x", width / 64 - 18)
+                    .attr("y", height / 3)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "16px")
+                    .style("font-weight", "bold")
+                    .text("Sport");
+
+                chartAreaTech.append("text")
+                    .attr("x", xCoord * 1.1)  // Multiply by 1.1 to move text slightly beyond the axis end
+                    .attr("y", yCoord * 1.1)
+                    .attr("dy", "0.35em")  // To align the text vertically
+                    .style("text-anchor", "middle")
+                    .style("font-size", "12px")
+                    .style("font-weight", "bold")
+                    .text(axisLabels[i]);
+
+                chartAreaTech.append("text")
+                    .attr("x", width / 64 - 18)
+                    .attr("y", height / 3)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "16px")
+                    .style("font-weight", "bold")
+                    .text("Tech");
+
+                chartAreaTotal.append("text")
+                    .attr("x", xCoord * 1.1)  // Multiply by 1.1 to move text slightly beyond the axis end
+                    .attr("y", yCoord * 1.1)
+                    .attr("dy", "0.35em")  // To align the text vertically
+                    .style("text-anchor", "middle")
+                    .style("font-size", "12px")
+                    .style("font-weight", "bold")
+                    .text(axisLabels[i]);
+
+                chartAreaTotal.append("text")
+                    .attr("x", width / 64 - 18)
+                    .attr("y", height / 3)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "16px")
+                    .style("font-weight", "bold")
+                    .text("Combination");
+            }
+
+            //append all four paths to charAreaTotal
+
+            chartAreaTotal.append("path")
+                .attr("d", techPath)
+                .attr("stroke", "blue")
+                .attr("stroke-opacity", 0.7)
+                .attr("stroke-width", 1)
+                .attr("fill", "lightblue")
+                .attr("fill-opacity", 0.5);
+
+            chartAreaTotal.append("path")
+                .attr("d", artsPath)
+                .attr("stroke", "#C71585")
+                .attr("stroke-width", 1)
+                .attr("fill", "pink")
+                .attr("fill-opacity", 0.2);
+
+            chartAreaTotal.append("path")
+                .attr("d", sportPath)
+                .attr("stroke", "orange")
+                .attr("stroke-width", 1)
+                .attr("fill", "orange")
+                .attr("fill-opacity", 0.2);
+
+        });
+
+        const legend = svg.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(420,380)`);
+
+        // Add labels for the legend
+        legend.append("text")
+            .attr("x", 0)
+            .attr("y", 0)
+            .text("E: Extroverted")
+            .style("font-size", "14px");
+
+        legend.append("text")
+            .attr("x", 0)
+            .attr("y", 15)
+            .text("I: Introverted")
+            .style("font-size", "14px");
+
+        legend.append("text")
+            .attr("x", 100)
+            .attr("y", 0)
+            .text("T: Thinking")
+            .style("font-size", "14px");
+
+        legend.append("text")
+            .attr("x", 100)
+            .attr("y", 15)
+            .text("F: Feeling")
+            .style("font-size", "14px");
+
+        legend.append("text")
+            .attr("x", 200)
+            .attr("y", 0)
+            .text("S: Sensing")
+            .style("font-size", "14px");
+
+        legend.append("text")
+            .attr("x", 200)
+            .attr("y", 15)
+            .text("N: Intuition")
+            .style("font-size", "14px");
+
+        legend.append("text")
+            .attr("x", 300)
+            .attr("y", 0)
+            .text("P: Perceiving")
+            .style("font-size", "14px");
+
+        legend.append("text")
+            .attr("x", 300)
+            .attr("y", 15)
+            .text("J: Judging")
+            .style("font-size", "14px");
+    </script>
+
+    <p class="summary">
+        From <strong>Personality Analysis Across Different Interests</strong> Graph, we want to explore whether
+        Interests is an influential factor for the MBTI personality.
+        <br>The shapes of the radar charts for all three Interests Categories Arts, Sport, and Technology look fairly
+        similar. This suggests that different interests might not influence personality traits a lot.
+
+    </p>
+
+
+
+
+
+    <svg id="mbti-histogram" width="800" height="600"></svg>
+    <script>
+        d3.csv("personalities.csv").then((data) => {
+            // Grouping data by MBTI type and gender
+            const groupedData = d3.rollups(
+                data,
+                v => ({
+                    Male: v.filter(d => d.Gender === 'Male').length,
+                    Female: v.filter(d => d.Gender === 'Female').length
+                }),
+                d => d.Personality
+            );
+
+            // Convert the grouped data into an array of objects for easier processing
+            const mbtiCounts = groupedData.map(d => ({
+                mbti: d[0],
+                Male: d[1].Male,
+                Female: d[1].Female
+            }));
+
+            // Set up the SVG dimensions
+            const margin = { top: 70, right: 20, bottom: 50, left: 70 },
+                width = 800 - margin.left - margin.right,
+                height = 570 - margin.top - margin.bottom;
+
+            const svg = d3.select("#mbti-histogram")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", -50)
+                .text("Personality Analysis By Gender")
+                .attr("text-anchor", "middle")
+                .style("font-size", 20)
+                .style("font-weight", "bold");
+
+            // Set up x and y scales
+            const xScale = d3.scaleBand()
+                .domain(mbtiCounts.map(d => d.mbti))
+                .range([0, width])
+                .padding(0.2);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(mbtiCounts, d => Math.max(d.Male, d.Female))])
+                .range([height, 0]);
+
+            const colorScale = d3.scaleOrdinal()
+                .domain(["Male", "Female"])
+                .range(["lightblue", "lightpink"]);
+
+
+            // Add grid lines for y-axis
+            svg.append("g")
+                .attr("class", "grid")
+                .call(d3.axisLeft(yScale)
+                    .tickSize(-width)  // Extend lines to the left
+                    .tickFormat("")    // Hide tick labels
+                )
+                .attr("stroke-dasharray", "2,2")  // Dashed lines for grid
+                .attr("color", "lightgrey");     // Light grey color for grid lines
+
+            // Draw bars for Male and Female
+            const barWidth = xScale.bandwidth() / 2;
+
+            svg.selectAll(".bar.male")
+                .data(mbtiCounts)
+                .enter()
+                .append("rect")
+                .attr("class", "bar male")
+                .attr("x", d => xScale(d.mbti))
+                .attr("y", d => yScale(d.Male))
+                .attr("width", barWidth)
+                .attr("height", d => height - yScale(d.Male))
+                .attr("fill", colorScale("Male"));
+
+            svg.selectAll(".bar.female")
+                .data(mbtiCounts)
+                .enter()
+                .append("rect")
+                .attr("class", "bar female")
+                .attr("x", d => xScale(d.mbti) + barWidth)
+                .attr("y", d => yScale(d.Female))
+                .attr("width", barWidth)
+                .attr("height", d => height - yScale(d.Female))
+                .attr("fill", colorScale("Female"));
+
+            // Draw axes
+            const xAxis = d3.axisBottom(xScale);
+            const yAxis = d3.axisLeft(yScale);
+
+            svg.append("g")
+                .attr("transform", `translate(0, ${height})`)
+                .call(xAxis)
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .style("text-anchor", "end");
+
+            svg.append("g")
+                .call(yAxis);
+
+
+            // Add axes labels
+            svg.append("text")
+                .attr("class", "x label")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + margin.bottom - 10)
+                .text("MBTI Type");
+
+            svg.append("text")
+                .attr("class", "y label")
+                .attr("text-anchor", "middle")
+                .attr("x", -height / 2)
+                .attr("y", -margin.left + 20)
+                .attr("transform", "rotate(-90)")
+                .text("Number of People");
+
+            // Add legend
+            const legend = svg.append("g")
+                .attr("transform", `translate(${width - 100}, ${margin.top})`);
+
+            legend.append("rect")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("width", 15)
+                .attr("height", 15)
+                .attr("fill", colorScale("Male"));
+
+            legend.append("text")
+                .attr("x", 20)
+                .attr("y", 12)
+                .text("Male");
+
+            legend.append("rect")
+                .attr("x", 0)
+                .attr("y", 20)
+                .attr("width", 15)
+                .attr("height", 15)
+                .attr("fill", colorScale("Female"));
+
+            legend.append("text")
+                .attr("x", 20)
+                .attr("y", 32)
+                .text("Female");
+
+
+            // Add image above the higher bar for each MBTI type
+            mbtiCounts.forEach(d => {
+                const isMaleHigher = d.Male > d.Female;
+                const imageY = isMaleHigher ? yScale(d.Male) : yScale(d.Female);
+                const imageX = isMaleHigher ? xScale(d.mbti) - barWidth / 3 : xScale(d.mbti) + barWidth / 2;
+
+                svg.append("image")
+                    .attr("xlink:href", `${d.mbti}.png`) // Assuming the image file is named based on the MBTI type
+                    .attr("x", imageX) // Adjust the x-position to the higher bar
+                    .attr("y", imageY - 40) // Place above the higher bar
+                    .attr("width", 30)
+                    .attr("height", 40);
+            });
+
+        });
+    </script>
+
+    <p class="summary">
+        From <strong>Personality Analysis By Gender</strong> Graph, we examined eight MBTI personality traits in different gender categories to study if genders have an impact on MBTI personalities.
+        <br>The ENFP, INFP, and ENTP types are among the most common, while types like ISTJ and ESTJ are less prevalent. Moreover, there are significant differences between genders; for instance, INFP is more common among males, whereas ENTP is more common among females.
+
+    </p>
+
+
+
+    <svg id="heatmap" width="1000" height="600"></svg>
+    <script>
+        d3.csv("personalities.csv").then(function (data) {
+            drawHeatmap(data);
+        });
+
+        function drawHeatmap(data) {
+            const scoreTypes = ["Extroversion Score", "Sensing Score", "Thinking Score", "Judging Score"];
+
+            let heatmapData = [];
+
+            // Extract all unique MBTI types from the dataset
+            const mbtiTypes = Array.from(new Set(data.map(d => d.Personality)));
+
+            // Prepare heatmap data for each MBTI type and score type
+            mbtiTypes.forEach(type => {
+                scoreTypes.forEach(scoreType => {
+                    let filteredData = data.filter(d => d.Personality === type);
+                    let meanScore = d3.mean(filteredData, d => +d[scoreType]);
+                    heatmapData.push({ type: type, scoreType: scoreType, meanScore: meanScore });
+                });
+            });
+
+            // Updated dimensions for larger heatmap
+            const margin = { top: 50, right: 50, bottom: 100, left: 100 },
+                width = 1000 - margin.left - margin.right,  // Increased width for the heatmap
+                height = 600 - margin.top - margin.bottom;  // Increased height for the heatmap
+
+            // Set up SVG
+            const svg = d3.select("#heatmap")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", -30)
+                .text("Personality Analysis By Scoring")
+                .attr("text-anchor", "middle")
+                .style("font-size", 20)
+                .style("font-weight", "bold");
+
+            // Create x and y scales with updated ranges
+            const x = d3.scaleBand()
+                .range([0, width])  // Adjust to new width
+                .domain(mbtiTypes)
+                .padding(0.05);
+
+            const y = d3.scaleBand()
+                .range([height, 0])  // Adjust to new height
+                .domain(scoreTypes)
+                .padding(0.05);
+
+            // Color scales for each score type
+            const colorScales = {
+                "Extroversion Score": d3.scaleSequential()
+                    .domain([0, 10])
+                    .interpolator(d3.interpolateRgbBasis(["#ffffff", "#cde4f8", "#7fb8e5", "#5a99d1", "#3f7bbf"])),  // Soft white to richer baby blue
+                "Sensing Score": d3.scaleSequential()
+                    .domain([0, 10])
+                    .interpolator(d3.interpolateRgbBasis(["#ffffff", "#fbd8da", "#f596a8", "#f0758d", "#e85a78"])),  // Soft white to richer baby pink
+                "Thinking Score": d3.scaleSequential()
+                    .domain([0, 10])
+                    .interpolator(d3.interpolateRgbBasis(["#ffffff", "#fceacc", "#f8c97f", "#f3aa5e", "#ea8a3c"])),  // Soft white to richer pastel peach
+                "Judging Score": d3.scaleSequential()
+                    .domain([0, 10])
+                    .interpolator(d3.interpolateRgbBasis(["#ffffff", "#e3f6d9", "#addf9a", "#87c974", "#66b158"]))   // Soft white to richer pastel green
+            };
+
+            // Create the heatmap cells
+            svg.selectAll()
+                .data(heatmapData, d => d.type + ':' + d.scoreType)
+                .enter()
+                .append("rect")
+                .attr("x", d => x(d.type))
+                .attr("y", d => y(d.scoreType))
+                .attr("width", x.bandwidth())
+                .attr("height", y.bandwidth())
+                .attr("class", "cell")
+                .style("fill", d => colorScales[d.scoreType](d.meanScore));
+
+            // Add x-axis with MBTI types
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .style("text-anchor", "end")
+                .attr("dx", "-0.8em")
+                .attr("dy", "0.15em")
+                .attr("transform", "rotate(-45)");
+
+            // Add y-axis
+            svg.append("g")
+                .call(d3.axisLeft(y));
+
+            // Add mean score labels on each cell
+            svg.selectAll(".text")
+                .data(heatmapData)
+                .enter()
+                .append("text")
+                .attr("x", d => x(d.type) + x.bandwidth() / 2)
+                .attr("y", d => y(d.scoreType) + y.bandwidth() / 2)
+                .attr("dy", ".35em")
+                .style("text-anchor", "middle")
+                .style("font-size", "12px")
+                .style("fill", "black")
+                .text(d => d.meanScore.toFixed(2));
+        }
+
+
+    </script>
+
+
+
+</body>
+
+</html>

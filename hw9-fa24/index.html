@@ -1,0 +1,105 @@
+<html>
+
+<head>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+</html>
+
+<body>
+    <h3>Xinyi Zhou xz255</h3>
+    <p id="p1">
+        Question 1
+    </p>
+    <svg id="chartArea" width="600" height="600"></svg>
+    <script>
+        const svg = d3.select("#chartArea");
+        const width = svg.attr("width");
+        const height = svg.attr("height");
+        const margins = { top: 10, right: 10, bottom: 50, left: 50 };
+        const chartWidth = width - margins.left - margins.right;
+        const chartHeight = height - margins.top - margins.bottom;
+
+        let chartArea = svg.append("g")
+            .attr("transform", `translate(${margins.left},${margins.top})`);
+
+        const requestData = async () => {
+
+            // Load dataset of miserables
+            const miserables = await d3.json("miserables.json");
+            console.log(miserables);
+            const nodes = miserables.nodes;
+            const links = miserables.links;
+            console.log(nodes);
+            console.log(links);
+
+            //create a scale for edge values
+            const valueExtent = d3.extent(links, d => d["value"])
+            const valueScale = d3.scaleLinear()
+                .domain(valueExtent)
+                .range([1, 5]);
+
+            //create a color scale for nodes by character's group
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
+                .domain(nodes.map(d => d["group"]));
+
+            
+            //create a force model
+            var forceModel = d3.forceSimulation()
+                .nodes(nodes)
+                .force("links", d3.forceLink()
+                                  .links(links)
+                                  .id(d=>d.character))
+                .force("repulse", d3.forceManyBody().strength(-20))
+                .force("center", d3.forceCenter(chartWidth / 2.0, chartHeight / 2.0))
+                .on("tick", render);
+
+
+            function render() {
+
+                //draw edges
+                let lines = chartArea.selectAll("line.link").data(links)
+                    .join(
+                        enter => enter.append("line")
+                            .attr("class", "link")
+                            .attr("opacity", 1)
+                            .attr("stroke","black")
+                            .attr("stroke-width", d => valueScale(d.value))
+                    )
+                    .attr("x1", d => d.source.x).attr("x2", d => d.target.x)   // Using the pointers d3.forceLink provides to access node x and y coords
+                    .attr("y1", d => d.source.y).attr("y2", d => d.target.y);
+
+                let circles = chartArea.selectAll("circle.node").data(nodes)
+                    .join(
+                        enter => enter.append("circle")
+                            .attr("class", "node")
+                            .attr("r", 5)
+                            .attr("cx", 0)
+                            .attr("cy", 0)
+                            .attr("fill", d => colorScale(d.group))
+                            .attr("stroke-width", 1)
+                            .attr("stroke", "black")
+                            .on("mouseover", (event, d)=> {
+                                chartArea.append("text")
+                                    .datum(d)
+                                    .attr("class", "label")
+                                    .attr("x", d.x - 10)
+                                    .attr("y", d.y + 15)
+                                    .text(d.character)
+                                    .attr("font-size", "12px");
+                            })
+                            .on("mouseout", (event, d)=> {
+                                chartArea.selectAll("text.label").remove();
+                            })
+
+                    )
+
+
+            }
+            render();
+
+        }
+        requestData();
+
+    </script>
+</body>

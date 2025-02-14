@@ -1,0 +1,105 @@
+<html>
+
+<head>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <h3>Xinyi Zhou xz255</h3>
+    <ul>
+        <li>Q1.A: This is a sequantial scale.
+            <br> This is an effective sequantial color scale since it has limited hue colors(2), and the color scale has smooth gradient.
+        </li>
+        <li>Q1.B:  This is not an effective color scale. Because it uses saturated color, blue, as middle. This makes the color scale dirty and unaesthetic. A neutral color like white will be better for the middle.
+            Also, blue does not conceptually represent a neutral state of sentiment. Yellow does not conceptually presents dislike as well. This may lead confusion to people.
+            In addition, if the data falls between yellow and blue, or between blue and red, it is difficult for people to judge the extent of sentiment.
+            Therefore, the color scale is ineffective.
+        </li>
+        <li>Q1.C:Blue-Blind/Tritanopia (Dichromatic)
+        </li>
+        <li>Q1.D:No I would not recommend to use the rainbow scale to color the counties in their map.
+            <br>The rainbow scale is not perceptually uniform, some colors like green and blue have much more rooms in the scale,
+            whereas less room for colors like purple, orange and red. Also, there's abrupt color transitions to cyan and yellow.
+            Therefore, these will lead to misinterpretation. It is hard for people to hard to judge place in scale.
+            A sequential or diverging color scale will be more effective for continuous numeric data.
+        </li>
+    </ul>
+
+    <p id="p2">
+        <p>Question2</p>
+        <svg height="600" width="600" style="background-color: black;"></svg>
+        
+        <script>
+            d3.csv("NCAA_shots.csv").then((data) => {
+                console.log(data);
+
+                const svg=d3.select("svg");
+
+                data.forEach(d=>{d["x"]=Number(d["x"]);d["y"]=Number(d["y"]);d["attempt"]=Number(d["attempt"]);d["log_attempt"]=Number(d["log_attempt"])});
+
+                log_attempt_extent=d3.extent(data,d=>d["log_attempt"]);
+
+                colorScale=d3.scaleSequential().domain(log_attempt_extent)
+                                           .interpolator(d3.interpolatePlasma);
+
+                svg.selectAll("circle").data(data)
+                   .join("circle")
+                   .attr("r",5)
+                   .attr("fill",d=>colorScale(d.log_attempt))
+                   .attr("cx",d=>d["x"])
+                   .attr("cy",d=>d["y"]);
+                
+            })
+        </script>
+        <p><strong>Advantage:</strong> The advantage of the logarithmic color scale is that it makes data points with sutble variations more visible to people. 
+            <br>Circles with small attemps now will receive virtually different colors from the color scales.
+            <br><strong>Disadvantage:</strong> Circles represent locations with high attempts are less stand out from the graph by using the logarithmic color scale compared with using original, linear scale.
+        </p>
+    </p>
+
+    <p id="p2">
+        <p>Question 3</p>
+        <svg class="svg_hcl" height="420" width="420"></svg>
+        <div>
+            <input type="range" id="lightness" name="lightness" min="0" max="200" step="1"/>
+        </div>
+        <script>
+            const svg_hcl=d3.select("svg.svg_hcl");
+            const hcl_array=[];
+            for (let i=0; i<=360;i+=18){
+                for (let j=0;j<=100; j+=5){
+                    hcl_array.push({h:i,c:j});
+                }
+            }
+            console.log(hcl_array);
+
+            const xScale=d3.scaleLinear().domain([0,360])
+                                         .range([20,400]);
+            const yScale=d3.scaleLinear().domain([0,100])
+                                         .range([400,20]);
+                    
+
+            function showCircles(lightness){
+                svg_hcl.selectAll("circle").data(hcl_array)
+                       .join("circle")
+                       .attr("r",10)
+                       .attr("cx",d=>xScale(d.h))
+                       .attr("cy",d=>yScale(d.c))
+                       .attr("fill",d=>d3.hcl(d.h,d.c,lightness));
+            }
+
+            const initial_lightness = 80;
+            showCircles(initial_lightness);
+
+            d3.select('#lightness')
+              .on("input", function(){
+                    const lightness = this.value;
+                    showCircles(lightness);
+                })
+                
+            showCircles(80);
+
+        </script>
+    </p>
+</body>
+
+</html>

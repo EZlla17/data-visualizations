@@ -1,0 +1,111 @@
+<html>
+
+<head>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+
+    <style>
+        .gridlines line {
+            stroke: #bbb;
+        }
+
+        .gridlines .domain {
+            stroke: none;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h3>Xinyi Zhou xz255</h3>
+    <p>Question 1</p>
+    <p id="p1">
+        <svg id="chartArea" height="400" width="800"></svg>
+        <script>
+            d3.json("erie_fishing.json").then((data) => {
+                console.log(data);
+
+                const svg = d3.select("#chartArea");
+                const width = svg.attr("width");
+                const height = svg.attr("height");
+                const margins = { top: 10, right: 10, bottom: 50, left: 50 };
+                const chartWidth = width - margins.left - margins.right;
+                const chartHeight = height - margins.top - margins.bottom;
+
+                let chartArea = svg.append("g")
+                    .attr("transform", `translate(${margins.left},${margins.top})`);
+
+                //create a timeScale
+                const parseTime = d3.timeParse("%m-%d-%Y")
+                const timeScale = d3.scaleTime()
+                    .domain([parseTime(data.earliest_date), parseTime(data.latest_date)])
+                    .range([0, chartWidth])
+
+                //create a liner scale for values in dataset
+                const valueScale = d3.scaleLinear()
+                    .domain([data.min_value, data.max_value])
+                    .range([chartHeight, 0])
+
+                //create a color scale
+                const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
+                    .domain(data.timeseries.map(d => d.species));
+
+                //axis labels and gridlines
+                let leftAxis = d3.axisLeft(valueScale);
+                svg.append('g')
+                    .attr('class', 'y axis')
+                    .attr('transform', `translate(${margins.left - 10},${margins.top})`)
+                    .call(leftAxis);
+
+                let leftGridLines = d3.axisLeft(valueScale).tickFormat("").tickSize(-chartWidth - 10);
+                svg.append('g')
+                    .attr('class', 'y gridlines')
+                    .attr('transform', `translate(${margins.left - 10},${margins.top})`)
+                    .call(leftGridLines);
+
+                let bottomAxis = d3.axisBottom(timeScale);
+                svg.append('g')
+                    .attr('class', 'x axis')
+                    .attr('transform', `translate(${margins.left},${margins.top + chartHeight + 10})`)
+                    .call(bottomAxis);
+
+                let bottomGridLines = d3.axisBottom(timeScale).tickFormat("").tickSize(-chartHeight - 10);
+                svg.append('g')
+                    .attr('class', 'x gridlines')
+                    .attr('transform', `translate(${margins.left},${margins.top + chartHeight + 10})`)
+                    .call(bottomGridLines);
+
+                chartArea.raise();
+
+                //draw lines
+                //generate path through using lineGenerator
+                const lineGenerator = d3.line()
+                    .x(d => timeScale(parseTime(d.date)))
+                    .y(d => valueScale(d.total_caught));
+
+                const gTags = chartArea.selectAll(".lines")
+                    .data(data.timeseries)
+                    .join("g")
+                    .attr("class", "lines")
+                    .style("stroke", d => colorScale(d.species));
+
+                //add path to each gTags
+                gTags.append("path")
+                    .attr("d", d => lineGenerator(d.values))
+                    .style("stroke-width", 2)
+                    .attr("fill", "none");
+
+                //add circles to each gTags
+                gTags.selectAll("circle")
+                    .data(d => d.values)
+                    .join("circle")
+                    .attr("r", 2)
+                    .attr("cx", d => timeScale(parseTime(d.date)))
+                    .attr("cy", d => valueScale(d.total_caught))
+                    .attr("fill", d => colorScale(d.species));
+            });
+        </script>
+    </p>
+</body>
+
+</html>

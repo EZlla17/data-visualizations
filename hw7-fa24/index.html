@@ -1,0 +1,82 @@
+<html>
+
+<head>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <style>
+        .outline {
+            fill: none;
+            stroke: white;
+            stroke-width: 1px;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>Xinyi Zhou xz255</h3>
+    <p id="p1">
+    <p>Problem 1</p>
+    <p>colorscale reference: https://colorbrewer2.org/#type=sequential&scheme=YlOrRd&n=3</p>
+    <svg id="choropleth" height="770" width="990" style="margin:20px"></svg>
+    <ul id="thresholds"></ul>
+    <script>
+        const svg = d3.select("#choropleth");
+        const mapWidth = svg.attr("width");
+        const mapHeight = svg.attr("height");
+        const requestData = async function () {
+            const nyrent = await d3.json("ny_rent.topo.json");
+            var state = topojson.feature(nyrent, nyrent.objects.state);
+            console.log(state);
+            var zips = topojson.feature(nyrent, nyrent.objects.zip_codes);
+            var zipsMesh = topojson.mesh(nyrent, nyrent.objects.zip_codes);
+
+            var projection = d3.geoMercator().fitSize([mapWidth, mapHeight], state);
+            var path = d3.geoPath().projection(projection);
+            console.log(path)
+
+            const rents = d3.map(zips.features, d => d.properties.median_monthly_rent);
+            console.log(rents);
+            //reference for the color scale: https://colorbrewer2.org/#type=sequential&scheme=YlOrRd&n=3
+            const colorScale = d3.scaleQuantile()
+                .domain(d3.map(zips.features, d => d.properties.median_monthly_rent))
+                .range(["#BD0026", "#f03b20", "#fd8d3c", "#FECC5C", "#ffeda0"]);
+
+            const map = svg.append("g");
+
+            map.selectAll("path.state").data(state.features)
+                .join("path")
+                .attr("class", "state")
+                .attr("d", path)
+                .style("fill", "lightgrey");
+
+
+            map.selectAll("path.zip").data(zips.features)
+                .join("path")
+                .attr("class", "state")
+                .attr("d", path)
+                .attr("fill", d => colorScale(d.properties.median_monthly_rent));
+
+            map.append("path").datum(zipsMesh)
+                .attr("class", "outline")
+                .attr("d", path);
+
+            const [positionX, positionY] = projection([-76.4850, 42.4476]);
+            map.append("circle")
+                .attr("cx", positionX)
+                .attr("cy", positionY)
+                .attr("r", 5)
+                .attr("fill", "black");
+
+
+            const thresholds = colorScale.quantiles();
+
+            const threshold = d3.select("#thresholds");
+            threshold.selectAll("li")
+                .data(thresholds)
+                .join("li")
+                .text(d => d);
+        }
+        requestData();
+    </script>
+    </p>
+</body>

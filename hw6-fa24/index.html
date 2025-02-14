@@ -1,0 +1,207 @@
+<html>
+
+<head>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .gridlines line {
+            stroke: #bbb;
+        }
+
+        .gridlines .domain {
+            stroke: #bbb;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>Xinyi Zhou xz255</h3>
+    <p id="p1">
+    <h4>Question 1</h4>
+    <p><strong>Part A</strong>
+        <br>Issue 1: Some data has points value greater than 100
+        <br> How to fix: Deletes points greater than 100 or less than 0 through filtering.
+        <br> Issue 2: Some data has province values other than New York, Washington, Oregon, and California.
+        <br> How to fix: Filt the data, and keep data which has the province of New York, Washington, Oregon, or
+        California.
+        <br> Issue 3: Some data has Dr. Jeffrey Rzeszotarski as the taster.
+        <br> How to fix: Delete data with taster name is Dr. Jeffrey Rzeszotarski through filtering.
+        <br> Data for points and price needs to be numeric type. Change points data to numeric. Change prices data to
+        numeric without a dollar sign.
+        <br> The final total number of data is 1120 which is printed in the console. 76 data are removed.
+    </p>
+
+    <p><strong>Part B</strong>
+        <br>Y axis use linear scale. Because the points value are well distributed across the range of 80 to 98. There's
+        no data clustered within a
+        particular range. Therefore, a linear scale is proper for points.
+        <br> X axis use log scale. Because for the x-axis. When using the linear scale for the prices. A lot of data are
+        clustered within the
+        range of 0-60. Therefore, a linear scale is not proper. Thus, price values need to take logarithms.In this case,
+        smaller prices will
+        be expanded and higher price will be compressed. The data will then be more evenly distributed across the
+        x-axis.
+        <br>Four different hues are used to represent data with different province. This allows people to quickly
+        identity different provinces.
+        <br>Grid lines are in light grey color which emphasize the data visualization more.
+        <br>X axis are formatted with the "$" sign which makes it more clear for people to interpret.
+    </p>
+
+    <p><strong>PartC</strong>
+        <br> I set the radius of all the circles to 3. This ensures that the circles are not too large, as there are
+        many of them to visualize.
+        This also ensures that the circles are not too small to visualize clearly.
+        <br> I set the opacity of the circle to 0.6. not only does this solve the problem of heavy overlapping, but the
+        circle is still clear enough to be seen.
+        <br> Advantage of the jitter function: This function can be an effective solution to the overlap problem,
+        especially with large amounts of data.
+        Without this function, many data points may overlap, making it difficult to see and interpret them. With this
+        function, circles will be less overlapping, and could be clearer.
+        <br> Disadvantages of the jitter function: the jitter function causes random offsets in the data points. This
+        can be confusing to people because they may perceive these offsets as differences in values between different
+        data points.
+        People may perceive these data values slightly different(higher or lower) from the actual values.
+    </p>
+
+    <p><strong>Part D</strong>
+        <br>My approach of displaying the title in the upper left corner, increasing the size of the hover circle,
+        adding a black border, and changing the opacity to 1 has a number of benefits.
+        <br> First, by displaying the title in the upper left corner, people can get more detailed information about the
+        specific circle people hovering at. Otherwise, people could hardly know what does the point indicate.
+        Also, there are a few circles in the upper left corner. This allows the title to be seen at a glance.
+        <br>Second, in charts, some circles are very close to each other and may be more difficult for people to see.
+        This may confuse people. My method helps people better pinpoint to specific data points accurately.
+
+    </p>
+
+
+
+    <svg height="500" width="800" id="wineSvg"></svg>
+    <script>
+        const svg = d3.select("#wineSvg");
+        const width = svg.attr("width");
+        const height = svg.attr("height");
+        const margins = { top: 10, right: 10, bottom: 50, left: 50 };
+        const chartWidth = width - margins.left - margins.right;
+        const chartHeight = height - margins.top - margins.bottom;
+
+
+        let chartArea = svg.append("g")
+            .attr("transform", `translate(${margins.left},${margins.top})`);
+
+
+        d3.json("wines.json").then((data) => {
+            //change data types
+            data.forEach(d => { d["points"] = Number(d["points"]) });
+            data.forEach(d => { d["price"] = Number(d["price"].substring(1)) });
+
+            //clean the data
+            const provinces = ["New York", "Washington", "Oregon", "California"]
+            const filtData = data.filter(d => d["points"] >= 0 && d["points"] <= 100
+                && provinces.includes(d["province"])
+                && d["taster_name"] != "Dr. Jeffrey Rzeszotarski");
+
+
+            console.log(filtData.length);
+
+            //find extent and scale for chart
+            const xExtent = d3.extent(filtData, d => d["price"]);
+            const xScale = d3.scaleLog().domain(xExtent)
+                .range([0, chartWidth]);
+
+            const yExtent = d3.extent(filtData, d => d["points"]);
+            const yScale = d3.scaleLinear().domain(yExtent)
+                .range([chartHeight, 0]);
+
+            //jitter function
+            function jitter() {
+                return (Math.random() * 6) - 3;
+            }
+
+
+            let leftAxis = d3.axisLeft(yScale);
+            svg.append('g')
+                .attr('class', 'y axis')
+                .attr('transform', `translate(${margins.left - 10},${margins.top})`)
+                .call(leftAxis);
+
+            let leftGridLines = d3.axisLeft(yScale).tickFormat("").tickSize(-chartWidth - 10);
+            svg.append('g')
+                .attr('class', 'y gridlines')
+                .attr('transform', `translate(${margins.left - 10},${margins.top})`)
+                .call(leftGridLines);
+
+            //add label for x axis
+            svg.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", margins.left + chartWidth / 2)
+                .attr("y", margins.top + chartHeight + margins.bottom - 10)
+                .text("Price ($)");
+
+            let bottomGridLines = d3.axisBottom(xScale).tickFormat(d3.format("$,.0f")).tickSize(-chartHeight - 10);
+            svg.append('g')
+                .attr('class', 'x gridlines')
+                .attr('transform', `translate(${margins.left},${margins.top + chartHeight + 10})`)
+                .call(bottomGridLines);
+
+            //add label for y axis
+            svg.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", -(margins.top + chartHeight / 2))
+                .attr("y", margins.left / 4)
+                .attr("transform", "rotate(-90)")
+                .text("Points");
+
+            chartArea.raise();
+
+            const provinceScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+            let circles = chartArea.selectAll("circle").data(filtData)
+                .join("circle")
+                .attr("r", 3)
+                .attr("fill", d => provinceScale(d["province"]))
+                .attr("opacity", 0.6)
+                .attr("cx", d => xScale(d["price"]) + jitter())
+                .attr("cy", d => yScale(d["points"]) + jitter());
+
+            svg.append("text")
+                .attr("x", margins.left + 10)
+                .attr("id", "label")
+                .attr("y", margins.top + 20)
+                .style("font-size", "14px")
+                .style("fill", "black");
+
+            circles.on("mouseover", function () {
+                let title = d3.select(this).datum()["title"];
+                d3.select("#label")
+                    .text(title);
+
+                d3.select(this)
+                    .transition()
+                    .duration(300)
+                    .attr("r", 6)
+                    .attr("stroke-width", 3)
+                    .attr("stroke", "black")
+                    .attr("opacity", 1);
+            });
+
+            circles.on("mouseout", function () {
+                d3.select("#label")
+                    .text("");
+
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr("r", 3)
+                    .attr("stroke", "none")
+                    .attr("opacity", 0.5);
+            });
+
+
+
+        })
+    </script>
+    </p>
+
+</body>
+
+</html>

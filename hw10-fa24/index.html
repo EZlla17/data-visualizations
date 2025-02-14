@@ -1,0 +1,40 @@
+<html>
+
+<head>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+    <h3>Xinyi Zhou xz255</h3>
+    <p> #1 </p>
+    <div id="barcodes"></div>
+    <script>
+        const requestData = async function () {
+            const movieBarcodes = await d3.json("movie_barcodes.json");
+            const barcodes = d3.select("#barcodes");
+            console.log(movieBarcodes);
+
+            movieBarcodes.forEach(element => {
+                const container = barcodes.append("div");
+                const title = container.append("h5")
+                    .text(element.title)
+                const canvas = container.append("canvas")
+                    .attr("width", 800)
+                    .attr("height", 100);
+
+                const contex = canvas.node().getContext('2d');
+                element.bars.forEach(bar => {
+                    contex.strokeStyle = bar.color;
+                    contex.beginPath();
+                    contex.moveTo(bar.x + 0.5, 0);
+                    contex.lineTo(bar.x + 0.5, 100);
+                    contex.stroke();
+                })
+
+            });
+        }
+        requestData();
+    </script>
+</body>
+
+</html>
