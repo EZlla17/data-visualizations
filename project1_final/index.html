@@ -711,7 +711,7 @@
         });
 
         function drawHeatmap(data) {
-            const scoreTypes = ["Extroversion Score", "Sensing Score", "Thinking Score", "Judging Score"];
+            const scoreTypes = ["Introversion Score", "Sensing Score", "Thinking Score", "Judging Score"];
 
             let heatmapData = [];
 
@@ -761,7 +761,7 @@
 
             // Color scales for each score type
             const colorScales = {
-                "Extroversion Score": d3.scaleSequential()
+                "Introversion Score": d3.scaleSequential()
                     .domain([0, 10])
                     .interpolator(d3.interpolateRgbBasis(["#ffffff", "#cde4f8", "#7fb8e5", "#5a99d1", "#3f7bbf"])),  // Soft white to richer baby blue
                 "Sensing Score": d3.scaleSequential()
